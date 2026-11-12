@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>電気回路シミュレーター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbf7ee; --bd:#e6dcc8; --ink:#1f2633; --sub:#4a5262;
+    --src:#c23b22; --srcLite:#fbdcd4; --load:#1d7f47; --loadLite:#d6f0e0;
+    --ctl:#2459a6; --ctlLite:#dce8f8; --elec:#6b3fb0; --elecLite:#ece3fa; --flow:#e07b00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Zen Maru Gothic","BIZ UDGothic",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-weight:700;}
+  button,select,input{font-family:inherit;}
+  button{cursor:pointer;}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 16px;background:#fff;border-bottom:2px solid var(--bd);}
+  header h1{font-size:22px;font-weight:900;} header h1 span{color:var(--elec);}
+  header a{font-size:15px;color:var(--elec);}
+  .wrap{display:grid;grid-template-columns:1fr 300px;gap:12px;padding:12px;max-width:1500px;margin:0 auto;}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr;}}
+  .board{background:#fff;border:2px solid var(--bd);border-radius:18px;overflow:hidden;position:relative;}
+  .bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 10px;border-bottom:2px solid var(--bd);background:#fffdf7;}
+  .bar .lb{font-size:13px;color:var(--sub);margin:0 2px 0 6px;}
+  .tool{border:2px solid var(--bd);background:#fff;border-radius:12px;padding:5px 9px;font-size:14px;font-weight:900;color:var(--ink);display:inline-flex;align-items:center;gap:4px;}
+  .tool.on{border-color:var(--elec);background:var(--elecLite);color:var(--elec);}
+  .tool svg{width:34px;height:22px;}
+  svg#cv{display:block;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none;}
+  .side{display:flex;flex-direction:column;gap:12px;}
+  .card{background:#fff;border:2px solid var(--bd);border-radius:18px;padding:12px 14px;}
+  .card h2{font-size:17px;font-weight:900;margin-bottom:8px;}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0;font-size:15px;}
+  select{font-size:15px;padding:4px 8px;border-radius:10px;border:2px solid var(--bd);font-weight:700;}
+  input[type=range]{flex:1;min-width:120px;accent-color:var(--elec);}
+  .btn{border:none;border-radius:12px;padding:7px 14px;font-size:15px;font-weight:900;background:var(--elec);color:#fff;box-shadow:0 3px 0 #4a2a80;}
+  .btn.ghost{background:#fff;color:var(--ink);border:2px solid var(--bd);box-shadow:0 3px 0 #d8cbb0;}
+  .btn:active{transform:translateY(2px);box-shadow:none;}
+  .seg{display:inline-flex;border:2px solid var(--bd);border-radius:12px;overflow:hidden;}
+  .seg button{border:none;background:#fff;padding:6px 12px;font-size:14px;font-weight:900;color:var(--sub);}
+  .seg button.on{background:var(--elec);color:#fff;}
+  #msg{font-size:15px;line-height:1.6;min-height:48px;padding:8px 12px;border-radius:12px;background:#f2efe7;color:var(--sub);}
+  #msg.warn{background:var(--srcLite);color:var(--src);}
+  #msg.ok{background:var(--loadLite);color:var(--load);}
+  #prop{font-size:15px;line-height:1.6;}
+  .meter{font-size:22px;font-weight:900;color:var(--elec);}
+  .hint{font-size:13px;color:var(--sub);line-height:1.6;}
+  .part{cursor:grab;}
+  .sel .selbox{stroke:var(--elec);}
+  .selbox{fill:none;stroke:transparent;stroke-width:3;stroke-dasharray:6 5;}
+  .gdot{fill:#d9d2c2;}
+  .tdot{fill:var(--ink);}
+  .wire{fill:none;stroke:#3b4252;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;}
+  .wire.live{stroke:#3b4252;}
+  .whit{fill:none;stroke:transparent;stroke-width:18;cursor:pointer;}
+  .dot{fill:var(--flow);}
+  .sym{stroke:currentColor;stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+  .lbl{font-size:13px;font-weight:900;fill:var(--sub);}
+  @keyframes buzz{0%,100%{opacity:.2}50%{opacity:1}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="s-bat" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-7M7 0H50M-7 -24V24"/><path d="M7 -12V12" stroke-width="8"/></g></symbol>
+    <symbol id="s-lamp" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-17M17 0H50"/><circle r="17"/><path d="M-12 -12L12 12M-12 12L12 -12"/></g></symbol>
+    <symbol id="s-led" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H50"/><path d="M-12 -14L12 0L-12 14Z" fill="#fff"/><path d="M12 -15V15"/><path d="M-1 -16L9 -26M8 -16L18 -26"/></g><g fill="currentColor"><path d="M11 -28L8.5 -20.5L3.5 -25.5Z"/><path d="M20 -28L17.5 -20.5L12.5 -25.5Z"/></g></symbol>
+    <symbol id="s-motor" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-19M19 0H50"/><circle r="19"/></g></symbol>
+    <symbol id="s-buzzer" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-8V-10M50 0H8V-10"/><path d="M-18 -26H18A18 18 0 0 1 -18 -26Z"/></g></symbol>
+    <symbol id="s-sw" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-18M18 0H50M-18 0L16 -20"/></g></symbol>
+    <symbol id="s-swon" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-18M18 0H50M-18 0L18 -3"/></g></symbol>
+    <symbol id="s-res" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-25M25 0H50"/><rect x="-25" y="-10" width="50" height="20"/></g></symbol>
+    <symbol id="s-vres" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-25M25 0H50"/><rect x="-25" y="-10" width="50" height="20"/><path d="M-22 19L16 -14"/></g><path d="M22 -19L18.5 -10L13 -16.5Z" fill="currentColor"/></symbol>
+    <symbol id="s-cds" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-25M25 0H50"/><rect x="-25" y="-10" width="50" height="20"/><path d="M-24 -30L-15 -19M-11 -30L-2 -19"/></g><g fill="currentColor"><path d="M-11 -14L-18.5 -16.5L-12.5 -21.5Z"/><path d="M2 -14L-5.5 -16.5L0.5 -21.5Z"/></g></symbol>
+    <radialGradient id="glowY"><stop offset="0" stop-color="#fff6a8" stop-opacity="1"/><stop offset="1" stop-color="#ffd23a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="beam"><stop offset="0" stop-color="#fff3a0" stop-opacity=".95"/><stop offset=".6" stop-color="#ffe680" stop-opacity=".35"/><stop offset="1" stop-color="#ffe680" stop-opacity="0"/></radialGradient>
+  </defs>
+</svg>
+
+<header>
+  <h1>⚡ <span>電気回路</span>シミュレーター</h1>
+  <a href="./index.html">← 電気回路ラボへ</a>
+</header>
+
+<div class="wrap">
+  <div class="board">
+    <div class="bar" id="tools"></div>
+    <svg id="cv"></svg>
+  </div>
+  <div class="side">
+    <div class="card">
+      <h2>表示</h2>
+      <div class="row"><div class="seg"><button data-v="pic" class="on">部品の絵</button><button data-v="sym">回路図</button></div></div>
+      <div class="row">部屋の明るさ <input type="range" id="amb" min="0" max="100" value="60"></div>
+      <div class="row"><label><input type="checkbox" id="lightOn" checked> 🔦 ライト（ドラッグで動かす）</label></div>
+      <div class="row"><label><input type="checkbox" id="snd"> 🔈 ブザーの音を出す</label></div>
+    </div>
+    <div class="card">
+      <h2>お手本の回路</h2>
+      <div class="row"><select id="tpl" style="flex:1;">
+        <option value="">― えらぶ ―</option>
+        <option value="led">① LEDを光らせる</option>
+        <option value="fan">② 扇風機（速さを変える）</option>
+        <option value="cds">③ 明るいとLEDが点く</option>
+        <option value="tr1">④ 光を当てるとモータが回る（発展）</option>
+        <option value="tr2">⑤ 暗くなるとLEDが点く（発展）</option>
+      </select></div>
+      <div class="row"><button class="btn ghost" id="clr">全部けす</button><button class="btn ghost" id="fresh">こわれた部品を新品に</button></div>
+    </div>
+    <div class="card">
+      <h2>えらんだ部品</h2>
+      <div id="prop" class="hint">「えらぶ」で部品をクリックすると、電圧・電流が見られます。</div>
+    </div>
+    <div id="msg">部品を置いて、導線でつないでみよう。</div>
+    <p class="hint">使い方：上の部品をえらぶ → 点をクリックして置く。「導線」は点から点へドラッグ。「えらぶ」で部品を動かす・スイッチを切りかえる。R キーで回転、Delete キーで削除。<br>※変化のようすを見るための簡略モデルです。実際の部品の値と同じではありません。</p>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const S = 44, M = 30, COLS = 24, ROWS = 14;
+const W = M*2 + (COLS-1)*S, H = M*2 + (ROWS-1)*S;
+const cv = $('#cv'); cv.setAttribute('viewBox', `0 0 ${W} ${H}`);
+const gx = i => M + i*S, gy = j => M + j*S;
+
+/* ---------------- 部品の種類 ---------------- */
+const T = {
+  bat:   {name:'電池', icon:'bat', terms:[[0,0],[2,0]], tn:['＋','－'], props:{v:3}},
+  sw:    {name:'スイッチ', icon:'sw', terms:[[0,0],[2,0]], props:{on:false}},
+  res:   {name:'抵抗器', icon:'res', terms:[[0,0],[2,0]], props:{r:100}},
+  vres:  {name:'可変抵抗器', icon:'vres', terms:[[0,0],[2,0]], props:{pos:30}},
+  led:   {name:'LED', icon:'led', terms:[[0,0],[2,0]], tn:['＋（長い足）','－'], props:{color:'red'}},
+  lamp:  {name:'豆電球', icon:'lamp', terms:[[0,0],[2,0]], props:{}},
+  motor: {name:'モータ', icon:'motor', terms:[[0,0],[2,0]], props:{}},
+  buzzer:{name:'ブザー', icon:'buzzer', terms:[[0,0],[2,0]], tn:['＋','－'], props:{}},
+  cds:   {name:'光センサ(CdS)', icon:'cds', terms:[[0,0],[2,0]], props:{}},
+  npn:   {name:'トランジスタ', icon:'npn', terms:[[0,0],[1,-1],[1,1]], tn:['B','C','E'], props:{}},
+};
+const LEDC = {red:{vf:1.8,c:'#ff3b30',n:'赤'}, green:{vf:2.1,c:'#34c759',n:'緑'}, white:{vf:3.0,c:'#ffffff',n:'白'}, blue:{vf:3.0,c:'#3d8bff',n:'青'}};
+const RES_VALUES = [10,51,100,470,1000,10000,47000];
+const vresR = p => Math.round(Math.pow(10, p.props.pos/100*4));    // 1Ω〜10kΩ
+
+/* ---------------- 状態 ---------------- */
+let parts = [], wires = [], nid = 1;
+let view = 'pic', tool = 'select', selId = null;
+let light = {x: gx(19), y: gy(6)};
+let sim = {I:{}, V:{}, nodeV:{}, warn:[], ok:true};
+const save = () => { try{ localStorage.setItem('dkSim', JSON.stringify({parts,wires,nid,light})); }catch(e){} };
+const load = () => { try{ const d = JSON.parse(localStorage.getItem('dkSim')); if(d && d.parts){ parts=d.parts; wires=d.wires; nid=d.nid; light=d.light||light; return true; } }catch(e){} return false; };
+
+function terms(p){
+  return T[p.type].terms.map(([dx,dy]) => {
+    let x=dx, y=dy;
+    for(let k=0;k<p.rot;k++){ const t=x; x=-y; y=t; }
+    return [p.x+x, p.y+y];
+  });
+}
+
+/* ---------------- 回路の計算（節点解析・区分線形の反復） ---------------- */
+function solve(){
+  const key = (x,y) => x+','+y;
+  const idx = new Map(); const nodeOf = (pt) => { const k = key(pt[0],pt[1]); if(!idx.has(k)) idx.set(k, idx.size); return idx.get(k); };
+  const els = [];
+  const amb = $('#amb').value/100, lon = $('#lightOn').checked;
+  for(const w of wires) els.push({k:'w', id:w.id, a:nodeOf(w.a), b:nodeOf(w.b)});
+  for(const p of parts){
+    const t = terms(p).map(nodeOf);
+    els.push({k:p.type, id:p.id, p, n:t});
+  }
+  const n = idx.size;
+  if(n === 0){ sim = {I:{},V:{},warn:[],nodeV:{}}; return; }
+  // 基準（0V）：最初の電池の－極
+  const firstBat = els.find(e => e.k==='bat');
+  const gnd = firstBat ? firstBat.n[1] : 0;
+  // 非線形素子の状態
+  const st = {};
+  for(const e of els){
+    if(e.k==='led') st[e.id] = {on:false};
+    if(e.k==='buzzer') st[e.id] = {on:false};
+    if(e.k==='npn') st[e.id] = {be:false, ib:0, sat:false};
+  }
+  const cdsR = (p) => {
+    const [a,b] = terms(p); const cx = (gx(a[0])+gx(b[0]))/2, cy = (gy(a[1])+gy(b[1]))/2;
+    const d2 = (cx-light.x)**2 + (cy-light.y)**2;
+    const L = Math.min(1, amb + (lon ? Math.exp(-d2/(2*75*75)) : 0));
+    p._lux = L;
+    return Math.pow(10, 6 - 3.3*L);   // 暗い 1MΩ 〜 明るい 約500Ω
+  };
+  let V = new Array(n).fill(0);
+  for(let it=0; it<60; it++){
+    const G = Array.from({length:n}, () => new Float64Array(n)), I = new Float64Array(n);
+    const g = (a,b,c) => { G[a][a]+=c; G[b][b]+=c; G[a][b]-=c; G[b][a]-=c; };
+    const src = (a,b,j) => { I[a]-=j; I[b]+=j; };          // a→b へ流れる電流源（素子の中を a から b へ）
+    const pwl = (a,b,vf,rd) => { g(a,b,1/rd); I[a]+=vf/rd; I[b]-=vf/rd; };  // I = (Va-Vb-vf)/rd
+    for(let i=0;i<n;i++) G[i][i] += 1e-9;
+    for(const e of els){
+      const p = e.p;
+      switch(e.k){
+        case 'w': g(e.a,e.b,1e3); break;
+        case 'bat': pwl(e.n[0],e.n[1],p.props.v,0.3); break;   // 内部抵抗0.3Ω
+        case 'sw': g(e.n[0],e.n[1], p.props.on ? 1e3 : 1e-9); break;
+        case 'res': g(e.n[0],e.n[1],1/p.props.r); break;
+        case 'vres': g(e.n[0],e.n[1],1/vresR(p)); break;
+        case 'lamp': g(e.n[0],e.n[1],1/10); break;
+        case 'motor': g(e.n[0],e.n[1],1/8); break;
+        case 'cds': g(e.n[0],e.n[1],1/cdsR(p)); break;
+        case 'led': if(p.props.burnt){ g(e.n[0],e.n[1],1e-9); break; }
+          if(st[e.id].on) pwl(e.n[0],e.n[1],LEDC[p.props.color].vf,10); else g(e.n[0],e.n[1],1e-9); break;
+        case 'buzzer': if(st[e.id].on) pwl(e.n[0],e.n[1],1.5,150); else g(e.n[0],e.n[1],1e-9); break;
+        case 'npn': { const [B,C,E] = e.n, s = st[e.id];
+          if(s.be) pwl(B,E,0.65,100); else g(B,E,1e-9);
+          if(s.sat) pwl(C,E,0.1,2);
+          else { g(C,E,1e-9); src(C,E,100*s.ib); }
+          break; }
+      }
+    }
+    // 基準節点を 0V に固定
+    for(let j=0;j<n;j++) G[gnd][j] = 0; G[gnd][gnd] = 1; I[gnd] = 0;
+    V = gauss(G, I);
+    // 状態の見直し
+    let changed = false;
+    for(const e of els){
+      const s = st[e.id]; if(!s) continue;
+      const vd = (a,b) => V[a]-V[b];
+      if(e.k==='led'){ const on = vd(e.n[0],e.n[1]) > LEDC[e.p.props.color].vf - 1e-6; if(on!==s.on){ s.on=on; changed=true; } }
+      if(e.k==='buzzer'){ const on = vd(e.n[0],e.n[1]) > 1.5 - 1e-6; if(on!==s.on){ s.on=on; changed=true; } }
+      if(e.k==='npn'){
+        const [B,C,E] = e.n; const vbe = vd(B,E), vce = vd(C,E);
+        const be = vbe > 0.65 - 1e-6; if(be!==s.be){ s.be=be; changed=true; }
+        const ibNew = be ? Math.max(0,(vbe-0.65)/100) : 0;
+        if(Math.abs(ibNew - s.ib) > 1e-7){ s.ib = s.ib*0.5 + ibNew*0.5; changed = true; }
+        if(!s.sat && vce < 0.1){ s.sat = true; changed = true; }
+        else if(s.sat){ const ice = (vce-0.1)/2; if(ice > 100*s.ib + 1e-6){ s.sat = false; changed = true; } }
+      }
+    }
+    if(!changed) break;
+  }
+  // 結果：素子ごとの電流（a→b を正）
+  const Ires = {}, Vres = {};
+  const warn = [];
+  for(const e of els){
+    const p = e.p;
+    if(e.k==='w'){ Ires[e.id] = (V[e.a]-V[e.b])*1e3; continue; }
+    const a = e.n[0], b = e.n[1], v = V[a]-V[b]; let i = 0;
+    switch(e.k){
+      case 'bat': i = (v - p.props.v)/0.3; break;
+      case 'sw': i = v*(p.props.on?1e3:1e-9); break;
+      case 'res': i = v/p.props.r; break;
+      case 'vres': i = v/vresR(p); break;
+      case 'lamp': i = v/10; break;
+      case 'motor': i = v/8; break;
+      case 'cds': i = v/cdsR(p); break;
+      case 'led': i = (!p.props.burnt && st[e.id].on) ? (v-LEDC[p.props.color].vf)/10 : 0; break;
+      case 'buzzer': i = st[e.id].on ? (v-1.5)/150 : 0; break;
+      case 'npn': { const [B,C,E] = e.n, s = st[e.id];
+        const ib = s.be ? Math.max(0,(V[B]-V[E]-0.65)/100) : 0;
+        const ic = s.sat ? (V[C]-V[E]-0.1)/2 : 100*s.ib;
+        Ires[e.id] = {ib, ic}; Vres[e.id] = {vbe:V[B]-V[E], vce:V[C]-V[E]}; continue; }
+    }
+    Ires[e.id] = i; Vres[e.id] = v;
+    if(e.k==='led' && i > 0.05 && !p.props.burnt){ p.props.burnt = true; warn.push('💥 LEDに大きな電流が流れて<b>こわれた</b>！ 抵抗器（電流制限抵抗）を入れよう。'); }
+    if(e.k==='bat' && -i > 1.5) warn.push('⚠ <b>ショート</b>（短絡）！ 電池から大きな電流が流れて熱くなる。とても危険。負荷を通るようにつなごう。');
+  }
+  if(parts.some(p => p.type==='led' && p.props.burnt) && !warn.length) warn.push('こわれたLEDがあるよ。「こわれた部品を新品に」でもどせる。');
+  const nodeV = {}; for(const [k,i] of idx) nodeV[k] = V[i];
+  sim = {I:Ires, V:Vres, nodeV, warn, st, gnd};
+}
+function gauss(A, b){
+  const n = b.length, a = A.map(r => Array.from(r)), x = Array.from(b);
+  for(let c=0;c<n;c++){
+    let p = c; for(let r=c+1;r<n;r++) if(Math.abs(a[r][c]) > Math.abs(a[p][c])) p = r;
+    [a[c],a[p]] = [a[p],a[c]]; [x[c],x[p]] = [x[p],x[c]];
+    const d = a[c][c] || 1e-30;
+    for(let r=c+1;r<n;r++){ const f = a[r][c]/d; if(!f) continue; for(let k=c;k<n;k++) a[r][k] -= f*a[c][k]; x[r] -= f*x[c]; }
+  }
+  const v = new Array(n).fill(0);
+  for(let r=n-1;r>=0;r--){ let s = x[r]; for(let k=r+1;k<n;k++) s -= a[r][k]*v[k]; v[r] = s/(a[r][r]||1e-30); }
+  return v;
+}
+
+/* ---------------- 描画 ---------------- */
+const fmtI = i => { const a = Math.abs(i); return a >= 1 ? a.toFixed(2)+' A' : a >= 0.001 ? (a*1000).toFixed(a<0.01?2:1)+' mA' : a >= 1e-6 ? (a*1e6).toFixed(0)+' µA' : '0 mA'; };
+const brightLED = p => { const i = sim.I[p.id]||0; return p.props.burnt ? 0 : Math.min(1, Math.sqrt(Math.max(0,i)/0.012)); };
+const brightLamp = p => { const i = Math.abs(sim.I[p.id]||0); return Math.min(1, i*i*10/0.6); };
+const motorSpeed = p => { const i = sim.I[p.id]||0; const a = Math.abs(i); return a < 0.08 ? 0 : Math.sign(i)*Math.min(1.5,(a-0.08)/0.25); };
+
+function partSVG(p){
+  const L = 2*S, pr = p.props, ty = p.type;
+  let s = '';
+  if(view === 'sym'){
+    const u = (id) => `<use href="#s-${id}" x="-50" y="-30" width="100" height="60" transform="translate(${S} 0) scale(.88)" style="color:#1f2633"/>`;
+    if(ty==='bat') s += u('bat');
+    if(ty==='sw') s += u(pr.on?'swon':'sw');
+    if(ty==='res') s += u('res');
+    if(ty==='vres') s += u('vres');
+    if(ty==='cds') s += u('cds');
+    if(ty==='lamp'){ const b = brightLamp(p); if(b>0.02) s += `<circle cx="${S}" cy="0" r="${18+22*b}" fill="url(#glowY)" opacity="${b}"/>`; s += u('lamp'); }
+    if(ty==='led'){ const b = brightLED(p); if(b>0.02) s += `<circle cx="${S}" cy="0" r="${14+20*b}" fill="${LEDC[pr.color].c==='#ffffff'?'#fff6c0':LEDC[pr.color].c}" opacity="${0.55*b}"/>`; s += u('led'); }
+    if(ty==='motor'){ s += u('motor') + `<text x="${S}" y="8" text-anchor="middle" font-size="22" font-weight="900" fill="#1f2633" transform="rotate(${-p.rot*90} ${S} 0)">M</text>`;
+      s += `<g class="spin" data-id="${p.id}"><path d="M${S} -26 a10 10 0 1 1 -9 6" fill="none" stroke="#e07b00" stroke-width="3" opacity="${motorSpeed(p)?1:0}"/></g>`; }
+    if(ty==='buzzer') s += u('buzzer');
+    if(ty==='npn'){
+      s += `<g class="sym" style="color:#1f2633"><circle cx="${S*0.7}" cy="0" r="24"/><path d="M0 0H${S*0.55}M${S*0.55} -14V14M${S*0.55} -6L${S} -18V${-S}M${S*0.55} 6L${S} 18V${S}"/></g><path d="M${S} 18l-11 -1 5 -8z" fill="#1f2633"/>`;
+    }
+  } else {
+    s += `<line x1="0" y1="0" x2="${ty==='npn'?0:L}" y2="0" stroke="#9aa0a8" stroke-width="3"/>`;
+    if(ty==='bat'){ s += `<rect x="12" y="-17" width="${L-24}" height="34" rx="7" fill="#2b2b2b"/><rect x="18" y="-11" width="${L-36}" height="22" rx="5" fill="#c9a227"/><rect x="18" y="-11" width="12" height="22" rx="4" fill="#5a5a5a"/>`; }
+    if(ty==='sw'){ s += `<rect x="20" y="-12" width="${L-40}" height="24" rx="6" fill="#4a4f59"/><line x1="${S}" y1="0" x2="${S+(pr.on?14:-14)}" y2="-26" stroke="${pr.on?'#2459a6':'#b9bec7'}" stroke-width="8" stroke-linecap="round"/>`; }
+    if(ty==='res'){ s += `<rect x="24" y="-9" width="${L-48}" height="18" rx="8" fill="#e8d3a6" stroke="#b89a5e"/><rect x="${S-12}" y="-9" width="5" height="18" fill="#8b4513"/><rect x="${S-3}" y="-9" width="5" height="18" fill="#222"/><rect x="${S+6}" y="-9" width="5" height="18" fill="#c0392b"/>`; }
+    if(ty==='vres'){ const ang = -135 + p.props.pos*2.7; s += `<circle cx="${S}" cy="0" r="20" fill="#2f5d9a"/><g transform="rotate(${ang} ${S} 0)"><circle cx="${S}" cy="0" r="13" fill="#eee" stroke="#999"/><rect x="${S-2.5}" y="-13" width="5" height="11" fill="#2f5d9a"/></g>`; }
+    if(ty==='cds'){ s += `<circle cx="${S}" cy="0" r="17" fill="#f6d9a8" stroke="#c08a3e" stroke-width="2"/><path d="M${S-10} -7h20v4h-20v4h20v4h-20" fill="none" stroke="#b5562a" stroke-width="2"/>`; }
+    if(ty==='lamp'){ const b = brightLamp(p); if(b>0.02) s += `<circle cx="${S}" cy="0" r="${22+26*b}" fill="url(#glowY)" opacity="${b}"/>`;
+      s += `<circle cx="${S}" cy="0" r="16" fill="${b>0.05?'#fff7c2':'#f4f6f8'}" stroke="#9aa3b5" stroke-width="2"/><path d="M${S-7} 3 q3 -10 7 0 q3 -10 7 0" fill="none" stroke="${b>0.05?'#ff9800':'#888'}" stroke-width="2"/>`; }
+    if(ty==='led'){ const b = brightLED(p), c = LEDC[pr.color].c;
+      if(b>0.02) s += `<circle cx="${S}" cy="0" r="${16+24*b}" fill="${c==='#ffffff'?'#fff6c0':c}" opacity="${0.5*b}"/>`;
+      s += `<path d="M${S-13} 10 V-2 a13 13 0 0 1 26 0 V10 Z" fill="${c}" stroke="${pr.burnt?'#333':'#888'}" stroke-width="2" opacity="${pr.burnt?0.45:0.55+0.45*b}"/><rect x="${S-15}" y="8" width="30" height="5" fill="#bbb"/>`;
+      if(pr.burnt) s += `<text x="${S}" y="-20" text-anchor="middle" font-size="20">💥</text>`; }
+    if(ty==='motor'){ s += `<circle cx="${S}" cy="0" r="18" fill="#b9bec7" stroke="#7d838e" stroke-width="2"/><g class="spin" data-id="${p.id}"><ellipse cx="${S-20}" cy="0" rx="20" ry="7" fill="#e56b2a" opacity=".92"/><ellipse cx="${S+20}" cy="0" rx="20" ry="7" fill="#e56b2a" opacity=".92"/><circle cx="${S}" cy="0" r="5" fill="#333"/></g>`; }
+    if(ty==='buzzer'){ s += `<circle cx="${S}" cy="0" r="17" fill="#222"/><circle cx="${S}" cy="0" r="3" fill="#555"/><text x="${S-26}" y="-12" font-size="14" fill="#c23b22" font-weight="900">+</text>`; }
+    if(ty==='npn'){ s += `<path d="M0 0H${S*0.5}M${S} ${-S}V-8M${S} ${S}V8" stroke="#9aa0a8" stroke-width="3" fill="none"/><path d="M${S*0.45} -16 h20 a16 16 0 0 1 0 32 h-20 z" fill="#222"/>`; }
+  }
+  // 状態の飾り
+  if(ty==='buzzer' && sim.st && sim.st[p.id] && sim.st[p.id].on) s += `<g style="animation:buzz .3s infinite"><path d="M${S+22} -22 q8 -8 0 -16 M${S+30} -26 q10 -10 0 -22" stroke="#e07b00" stroke-width="3" fill="none"/></g>`;
+  if(ty==='bat'){ const i = sim.I[p.id]||0; if(-i > 1.5) s += `<text x="${S}" y="-24" text-anchor="middle" font-size="22">🔥</text>`; }
+  return s;
+}
+function hitBox(p){
+  if(p.type==='npn') return `<rect class="selbox" x="-8" y="${-S-8}" width="${S+16}" height="${2*S+16}" rx="10"/><rect x="-8" y="${-S-8}" width="${S+16}" height="${2*S+16}" fill="transparent"/>`;
+  return `<rect class="selbox" x="6" y="-26" width="${2*S-12}" height="52" rx="10"/><rect x="6" y="-26" width="${2*S-12}" height="52" fill="transparent"/>`;
+}
+function wirePath(w){ const [x1,y1] = [gx(w.a[0]),gy(w.a[1])], [x2,y2] = [gx(w.b[0]),gy(w.b[1])]; return {d:`M${x1} ${y1}H${x2}V${y2}`, pts:[[x1,y1],[x2,y1],[x2,y2]]}; }
+
+let preview = null;
+function draw(){
+  let s = '';
+  // 格子の点
+  for(let i=0;i<COLS;i++) for(let j=0;j<ROWS;j++) s += `<circle class="gdot" cx="${gx(i)}" cy="${gy(j)}" r="2.6"/>`;
+  // 光
+  if($('#lightOn').checked) s += `<circle cx="${light.x}" cy="${light.y}" r="95" fill="url(#beam)" pointer-events="none"/>`;
+  // 導線
+  for(const w of wires){ const {d} = wirePath(w); s += `<path class="wire" d="${d}"/><path class="whit" data-wid="${w.id}" d="${d}"/>`; }
+  if(preview){ s += `<path d="${preview}" fill="none" stroke="#6b3fb0" stroke-width="4" stroke-dasharray="8 6"/>`; }
+  // 部品
+  for(const p of parts){
+    const [x,y] = [gx(p.x), gy(p.y)];
+    s += `<g class="part ${p.id===selId?'sel':''}" data-pid="${p.id}" transform="translate(${x} ${y}) rotate(${p.rot*90})">${hitBox(p)}${partSVG(p)}</g>`;
+  }
+  // 端子
+  const used = new Set(); parts.forEach(p => terms(p).forEach(t => used.add(t+''))); wires.forEach(w => { used.add(w.a+''); used.add(w.b+''); });
+  for(const k of used){ const [i,j] = k.split(',').map(Number); s += `<circle class="tdot" cx="${gx(i)}" cy="${gy(j)}" r="5" pointer-events="none"/>`; }
+  // 部品名・極性（回転しない文字）
+  for(const p of parts){
+    const ts = terms(p); const cx = ts.reduce((a,t)=>a+gx(t[0]),0)/ts.length, cy = ts.reduce((a,t)=>a+gy(t[1]),0)/ts.length;
+    const vert = p.rot%2===1 && p.type!=='npn';
+    let lab = T[p.type].name;
+    if(p.type==='bat') lab = p.props.v+'V';
+    if(p.type==='res') lab = (p.props.r>=1000? p.props.r/1000+'kΩ' : p.props.r+'Ω');
+    if(p.type==='led') lab = LEDC[p.props.color].n+'LED';
+    if(p.type==='cds' || p.type==='npn' || p.type==='vres' || p.type==='sw') lab = T[p.type].name.replace('(CdS)','');
+    if(p.type==='npn'){ s += `<text class="lbl" x="${cx+30}" y="${cy+5}" pointer-events="none">トランジスタ</text>`; } else s += `<text class="lbl" x="${vert?cx+30:cx}" y="${vert?cy+4:cy+(p.type==='npn'?0:40)}" text-anchor="${vert?'start':'middle'}" ${p.type==='npn'?`dx="${p.rot===0?48:0}"`:''} pointer-events="none">${lab}</text>`;
+    const tn = T[p.type].tn;
+    if(tn && (p.type==='bat'||p.type==='led'||p.type==='buzzer')) { const t0 = ts[0]; s += `<text x="${gx(t0[0])+(vert?-16:-4)}" y="${gy(t0[1])+(vert?-6:-12)}" font-size="16" font-weight="900" fill="#c23b22" text-anchor="end" pointer-events="none">＋</text>`; }
+    if(p.type==='npn') ts.forEach((t,k) => { s += `<text x="${gx(t[0])+8}" y="${gy(t[1])+(k===0?-8:k===1?12:-4)}" font-size="13" font-weight="900" fill="#6b3fb0" pointer-events="none">${tn[k]}</text>`; });
+  }
+  s += `<g id="dots" pointer-events="none"></g>`;
+  // ライトのつまみ
+  if($('#lightOn').checked) s += `<g data-light="1" style="cursor:grab"><circle cx="${light.x}" cy="${light.y}" r="22" fill="#fff" stroke="#e0a400" stroke-width="3"/><text x="${light.x}" y="${light.y+8}" text-anchor="middle" font-size="22">🔦</text></g>`;
+  cv.innerHTML = s;
+}
+
+/* ---------------- 電流の粒 ---------------- */
+let phase = 0, last = performance.now(), audio = null, osc = null;
+function segPaths(){
+  const list = [];
+  for(const w of wires){ const i = sim.I[w.id]||0; list.push({pts:wirePath(w).pts, i}); }
+  for(const p of parts){
+    const ts = terms(p).map(t => [gx(t[0]),gy(t[1])]);
+    if(p.type==='npn'){ const r = sim.I[p.id]; if(!r) continue; list.push({pts:[ts[0],ts[2]], i:r.ib}); list.push({pts:[ts[1],ts[2]], i:r.ic}); }
+    else list.push({pts:ts, i: sim.I[p.id]||0});
+  }
+  return list;
+}
+function tick(t){
+  const dt = Math.min(0.05,(t-last)/1000); last = t; phase += dt;
+  const g = document.getElementById('dots');
+  if(g){
+    let s = '';
+    for(const sp of segPaths()){
+      const a = Math.abs(sp.i); if(a < 2e-4) continue;
+      const speed = 30 + 60*Math.min(1, Math.log10(a/2e-4)/3);   // px/s（電流が大きいほど速い）
+      const pts = sp.i >= 0 ? sp.pts : sp.pts.slice().reverse();
+      let len = 0; const segs = [];
+      for(let k=1;k<pts.length;k++){ const l = Math.hypot(pts[k][0]-pts[k-1][0], pts[k][1]-pts[k-1][1]); segs.push([pts[k-1],pts[k],l]); len += l; }
+      if(len < 1) continue;
+      const gap = 28, off = (phase*speed) % gap;
+      for(let d = off; d < len; d += gap){
+        let r = d; for(const [p0,p1,l] of segs){ if(r <= l){ const f = r/l; s += `<circle class="dot" cx="${(p0[0]+(p1[0]-p0[0])*f).toFixed(1)}" cy="${(p0[1]+(p1[1]-p0[1])*f).toFixed(1)}" r="${a>0.05?4.5:3}"/>`; break; } r -= l; }
+      }
+    }
+    g.innerHTML = s;
+  }
+  // モータの回転
+  document.querySelectorAll('.spin').forEach(el => {
+    const p = parts.find(q => q.id == el.dataset.id); if(!p) return;
+    p._ang = ((p._ang||0) + motorSpeed(p)*720*dt) % 360;
+    const cxp = S; el.setAttribute('transform', `rotate(${p._ang} ${cxp} 0)`);
+  });
+  // ブザーの音
+  const buzzing = $('#snd').checked && sim.st && parts.some(p => p.type==='buzzer' && sim.st[p.id] && sim.st[p.id].on);
+  if(buzzing && !osc){ try{ audio = audio || new (window.AudioContext||window.webkitAudioContext)(); osc = audio.createOscillator(); const gn = audio.createGain(); gn.gain.value = 0.04; osc.type='square'; osc.frequency.value = 2300; osc.connect(gn).connect(audio.destination); osc.start(); }catch(e){} }
+  if(!buzzing && osc){ try{ osc.stop(); }catch(e){} osc = null; }
+  requestAnimationFrame(tick);
+}
+
+/* ---------------- 情報パネル ---------------- */
+function info(panel=true){
+  const m = $('#msg');
+  if(sim.warn && sim.warn.length){ m.className = 'warn'; m.innerHTML = sim.warn.join('<br>'); }
+  else {
+    const active = parts.filter(p => (p.type==='led' && brightLED(p)>0.05) || (p.type==='lamp' && brightLamp(p)>0.05) || (p.type==='motor' && motorSpeed(p)) || (p.type==='buzzer' && sim.st && sim.st[p.id] && sim.st[p.id].on));
+    if(!parts.length){ m.className=''; m.innerHTML = '部品を置いて、導線でつないでみよう。お手本の回路から始めてもOK。'; }
+    else if(!parts.some(p => p.type==='bat')){ m.className=''; m.innerHTML = '電源（電池）がないと電流は流れないよ。'; }
+    else if(active.length){ m.className='ok'; m.innerHTML = '⭕ 電流が流れて、' + [...new Set(active.map(p => ({led:'LEDが光った',lamp:'豆電球が光った',motor:'モータが回った',buzzer:'ブザーが鳴った'})[p.type]))].join('・') + '！'; }
+    else { m.className=''; m.innerHTML = '負荷が動いていない。電池から出て電池にもどる「ひとつながりの輪」になっているかな？ スイッチは入っている？'; }
+  }
+  if(!panel) return;
+  const p = parts.find(q => q.id===selId), el = $('#prop');
+  if(!p){ el.innerHTML = '「えらぶ」で部品をクリックすると、電圧・電流が見られます。'; return; }
+  let h = `<b>${T[p.type].name}</b><br>`;
+  if(p.type==='npn'){ const r = sim.I[p.id]||{ib:0,ic:0}; h += `ベース電流 <span class="meter">${fmtI(r.ib)}</span><br>コレクタ電流 <span class="meter">${fmtI(r.ic)}</span><br><span class="hint">小さなベース電流で、大きなコレクタ電流をON/OFFできる（スイッチの働き）</span>`; }
+  else { const v = sim.V[p.id]||0, i = sim.I[p.id]||0; h += `電圧 <span class="meter">${Math.abs(v).toFixed(2)} V</span>　電流 <span class="meter">${fmtI(i)}</span>`; }
+  if(p.type==='bat') h += `<div class="row">電圧 <select data-k="v">${[1.5,3,4.5,6].map(v => `<option ${v==p.props.v?'selected':''} value="${v}">${v}V（電池${v/1.5}本）</option>`).join('')}</select></div>`;
+  if(p.type==='res') h += `<div class="row">抵抗 <select data-k="r">${RES_VALUES.map(v => `<option ${v==p.props.r?'selected':''} value="${v}">${v>=1000?v/1000+'kΩ':v+'Ω'}</option>`).join('')}</select></div>`;
+  if(p.type==='vres') h += `<div class="row">つまみ <input type="range" data-k="pos" min="0" max="100" value="${p.props.pos}"></div><div class="hint">いまの抵抗 約 ${vresR(p)} Ω</div>`;
+  if(p.type==='led') h += `<div class="row">色 <select data-k="color">${Object.entries(LEDC).map(([k,c]) => `<option ${k===p.props.color?'selected':''} value="${k}">${c.n}（${c.vf}Vで光る）</option>`).join('')}</select></div>`;
+  if(p.type==='sw') h += `<div class="row"><button class="btn" data-act="toggle">${p.props.on?'切る':'入れる'}</button></div>`;
+  if(p.type==='cds') h += `<div class="hint">光が当たるほど抵抗が小さくなる。いまの明るさ ${Math.round((p._lux||0)*100)}%</div>`;
+  h += `<div class="row"><button class="btn ghost" data-act="rot">↻ 回転</button><button class="btn ghost" data-act="del">🗑 けす</button></div>`;
+  el.innerHTML = h;
+  el.querySelectorAll('[data-k]').forEach(c => c.oninput = c.onchange = () => {
+    const k = c.dataset.k; p.props[k] = k==='color' ? c.value : +c.value; update(c.type!=='range');
+    if(c.type==='range'){ const hint = el.querySelector('.hint'); if(hint) hint.textContent = `いまの抵抗 約 ${vresR(p)} Ω`; }
+  });
+  el.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
+    if(b.dataset.act==='toggle') p.props.on = !p.props.on;
+    if(b.dataset.act==='rot') rotate(p);
+    if(b.dataset.act==='del'){ parts = parts.filter(q => q!==p); selId = null; }
+    update();
+  });
+}
+function update(refreshPanel=true){ solve(); draw(); info(refreshPanel); save(); }
+function rotate(p){ p.rot = (p.rot+1)%4; }
+
+/* ---------------- ツールバー ---------------- */
+const TOOLS = [['select','👆 えらぶ'],['wire','〰 導線'],['erase','🗑 けす']];
+const PALETTE = ['bat','sw','res','vres','led','lamp','motor','buzzer','cds','npn'];
+function iconSVG(ty){
+  const map = {bat:'bat',sw:'sw',res:'res',vres:'vres',led:'led',lamp:'lamp',motor:'motor',buzzer:'buzzer',cds:'cds'};
+  if(ty==='npn') return `<svg viewBox="-6 -26 52 52"><g class="sym" style="color:#1f2633"><circle cx="28" cy="0" r="16"/><path d="M0 0H20M20 -10V10M20 -4L40 -14V-26M20 4L40 14V26"/></g></svg>`;
+  return `<svg viewBox="-55 -32 110 64"><use href="#s-${map[ty]}" x="-50" y="-30" width="100" height="60" style="color:#1f2633"/>${ty==='motor'?'<text x="0" y="8" text-anchor="middle" font-size="22" font-weight="900">M</text>':''}</svg>`;
+}
+$('#tools').innerHTML = TOOLS.map(([k,n]) => `<button class="tool" data-t="${k}">${n}</button>`).join('') + '<span class="lb">部品：</span>' +
+  PALETTE.map(k => `<button class="tool" data-t="${k}" title="${T[k].name}">${iconSVG(k)}${T[k].name.replace('(CdS)','')}</button>`).join('');
+function setTool(t){ tool = t; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.t===t)); }
+document.querySelectorAll('.tool').forEach(b => b.onclick = () => setTool(b.dataset.t));
+setTool('select');
+
+/* ---------------- 操作 ---------------- */
+function svgPt(e){ const pt = cv.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(cv.getScreenCTM().inverse()); }
+const snap = (P) => [Math.max(0,Math.min(COLS-1,Math.round((P.x-M)/S))), Math.max(0,Math.min(ROWS-1,Math.round((P.y-M)/S)))];
+let drag = null;
+cv.addEventListener('pointerdown', e => {
+  const P = svgPt(e), g = snap(P);
+  const lt = e.target.closest('[data-light]');
+  if(lt){ drag = {kind:'light'}; cv.setPointerCapture(e.pointerId); return; }
+  const pg = e.target.closest('[data-pid]'), wh = e.target.closest('[data-wid]');
+  if(tool==='erase'){
+    if(pg){ parts = parts.filter(p => p.id != pg.dataset.pid); }
+    else if(wh){ wires = wires.filter(w => w.id != wh.dataset.wid); }
+    update(); return;
+  }
+  if(tool==='wire'){ drag = {kind:'wire', a:g}; cv.setPointerCapture(e.pointerId); return; }
+  if(T[tool]){
+    const p = {id:nid++, type:tool, x:g[0], y:g[1], rot:0, props:{...T[tool].props}};
+    if(tool==='npn' && p.y===0) p.y = 1;
+    parts.push(p); selId = p.id; setTool('select'); update(); return;
+  }
+  // えらぶ
+  if(pg){
+    const p = parts.find(q => q.id == pg.dataset.pid); selId = p.id;
+    drag = {kind:'move', p, sx:P.x, sy:P.y, ox:p.x, oy:p.y, moved:false}; cv.setPointerCapture(e.pointerId);
+    draw(); info(); return;
+  }
+  selId = null; draw(); info();
+});
+cv.addEventListener('pointermove', e => {
+  if(!drag) return;
+  const P = svgPt(e);
+  if(drag.kind==='light'){ light = {x:Math.max(0,Math.min(W,P.x)), y:Math.max(0,Math.min(H,P.y))}; solve(); draw(); info(); return; }
+  if(drag.kind==='wire'){ const b = snap(P); preview = `M${gx(drag.a[0])} ${gy(drag.a[1])}H${gx(b[0])}V${gy(b[1])}`; draw(); return; }
+  if(drag.kind==='move'){
+    const dx = Math.round((P.x-drag.sx)/S), dy = Math.round((P.y-drag.sy)/S);
+    if(dx||dy) drag.moved = true;
+    drag.p.x = Math.max(0,Math.min(COLS-1,drag.ox+dx)); drag.p.y = Math.max(0,Math.min(ROWS-1,drag.oy+dy));
+    solve(); draw();
+  }
+});
+cv.addEventListener('pointerup', e => {
+  if(!drag) return;
+  const P = svgPt(e);
+  if(drag.kind==='wire'){ const b = snap(P); preview = null; if(b[0]!==drag.a[0] || b[1]!==drag.a[1]) wires.push({id:nid++, a:drag.a, b}); update(); }
+  else if(drag.kind==='move'){ if(!drag.moved && drag.p.type==='sw'){ drag.p.props.on = !drag.p.props.on; } update(); }
+  else if(drag.kind==='light'){ save(); }
+  drag = null;
+});
+addEventListener('keydown', e => {
+  if(e.target.closest('input,select')) return;
+  const p = parts.find(q => q.id===selId);
+  if(!p) return;
+  if(e.key==='r' || e.key==='R'){ rotate(p); update(); }
+  if(e.key==='Delete' || e.key==='Backspace'){ e.preventDefault(); parts = parts.filter(q => q!==p); selId = null; update(); }
+});
+document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { view = b.dataset.v; document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x===b)); draw(); });
+$('#amb').oninput = () => update(); $('#lightOn').onchange = () => update();
+$('#clr').onclick = () => { parts = []; wires = []; selId = null; update(); };
+$('#fresh').onclick = () => { parts.forEach(p => delete p.props.burnt); update(); };
+
+/* ---------------- お手本 ---------------- */
+function W_(a,b){ wires.push({id:nid++, a, b}); }
+function P_(type,x,y,rot=0,props={}){ const p = {id:nid++, type, x, y, rot, props:{...T[type].props, ...props}}; parts.push(p); return p; }
+const TPL = {
+  led(){ P_('bat',3,5,1,{v:3}); P_('sw',6,3); P_('res',9,3,0,{r:100}); P_('led',13,5,1);
+    W_([3,5],[3,3]); W_([3,3],[6,3]); W_([8,3],[9,3]); W_([11,3],[13,3]); W_([13,3],[13,5]); W_([13,7],[13,9]); W_([13,9],[3,9]); W_([3,9],[3,7]);
+    return 'スイッチをクリックして入れよう。抵抗器を外して導線にすると…？'; },
+  fan(){ P_('bat',3,5,1,{v:3}); P_('sw',6,3); P_('vres',9,3,0,{pos:20}); P_('motor',13,5,1);
+    W_([3,5],[3,3]); W_([3,3],[6,3]); W_([8,3],[9,3]); W_([11,3],[13,3]); W_([13,3],[13,5]); W_([13,7],[13,9]); W_([13,9],[3,9]); W_([3,9],[3,7]);
+    return 'スイッチを入れて、可変抵抗器をえらび、つまみを動かそう。'; },
+  cds(){ P_('bat',3,5,1,{v:3}); P_('cds',7,3); P_('led',13,5,1);
+    W_([3,5],[3,3]); W_([3,3],[7,3]); W_([9,3],[13,3]); W_([13,3],[13,5]); W_([13,7],[13,9]); W_([13,9],[3,9]); W_([3,9],[3,7]);
+    light = {x:gx(19), y:gy(6)};
+    return '🔦 ライトをドラッグして、光センサ（CdS）に近づけてみよう。'; },
+  tr1(){ P_('bat',2,5,1,{v:3}); P_('cds',6,2,1); P_('res',6,7,1,{r:10000}); P_('npn',9,6); P_('motor',10,2,1);
+    W_([2,5],[2,1]); W_([2,1],[6,1]); W_([6,1],[6,2]); W_([6,1],[10,1]); W_([10,1],[10,2]); W_([10,4],[10,5]);
+    W_([6,4],[6,6]); W_([6,6],[9,6]); W_([6,6],[6,7]); W_([6,9],[6,10]); W_([10,7],[10,10]); W_([2,7],[2,10]); W_([2,10],[6,10]); W_([6,10],[10,10]);
+    light = {x:gx(17), y:gy(6)};
+    return '🔦 ライトを光センサに当てると、トランジスタがスイッチの働きをしてモータが回る。'; },
+  tr2(){ P_('bat',2,5,1,{v:3}); P_('res',6,2,1,{r:47000}); P_('cds',6,8,1); P_('npn',9,8); P_('res',10,1,1,{r:100}); P_('led',10,4,1);
+    W_([2,5],[2,1]); W_([2,1],[6,1]); W_([6,1],[6,2]); W_([6,1],[10,1]); W_([6,4],[6,8]); W_([6,8],[9,8]); W_([10,3],[10,4]); W_([10,6],[10,7]);
+    W_([6,10],[6,11]); W_([10,9],[10,11]); W_([2,7],[2,11]); W_([2,11],[6,11]); W_([6,11],[10,11]);
+    light = {x:gx(17), y:gy(6)};
+    return '「部屋の明るさ」を下げると（暗くなると）LEDが点く。ライトを当てると消える。'; },
+};
+$('#tpl').onchange = e => {
+  const k = e.target.value; if(!k) return;
+  parts = []; wires = []; selId = null;
+  if(k==='tr2') $('#amb').value = 60;
+  const msg = TPL[k](); update();
+  if(!sim.warn.length){ const m = $('#msg'); m.className=''; m.innerHTML = msg; }
+  e.target.value = '';
+};
+
+window.__t = {get parts(){return parts}, update, setLight:(i,j)=>{light={x:gx(i),y:gy(j)};}, get sim(){return sim}, setView:(v)=>{view=v;}};
+if(!load()) TPL.led();
+update();
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
