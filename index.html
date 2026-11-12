@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>電気回路ラボ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbf7ee; --panel:#fff; --bd:#e6dcc8; --ink:#1f2633; --sub:#4a5262;
+    --src:#c23b22; --srcLite:#fbdcd4; --wire:#8a5a00; --wireLite:#f6e7c4;
+    --load:#1d7f47; --loadLite:#d6f0e0; --ctl:#2459a6; --ctlLite:#dce8f8;
+    --elec:#6b3fb0; --elecLite:#ece3fa; --flow:#e07b00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Zen Maru Gothic","BIZ UDGothic",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-weight:700;min-height:100vh;}
+  button,select,input{font-family:inherit;}
+  button{cursor:pointer;}
+  header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 20px;background:#fff;border-bottom:2px solid var(--bd);position:sticky;top:0;z-index:5;}
+  header h1{font-size:24px;font-weight:900;}
+  header h1 span{color:var(--elec);}
+  nav{display:flex;gap:8px;flex-wrap:wrap;}
+  nav button{border:2px solid var(--bd);background:#fff;border-radius:999px;padding:8px 18px;font-size:17px;font-weight:900;color:var(--sub);}
+  nav button.on{background:var(--elec);border-color:var(--elec);color:#fff;}
+  main{max-width:1200px;margin:0 auto;padding:20px 16px 40px;}
+  .tab{display:none;} .tab.on{display:block;}
+  .lead{font-size:18px;color:var(--sub);margin-bottom:14px;line-height:1.6;}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:820px){.two{grid-template-columns:1fr;}}
+  .card{background:#fff;border:2px solid var(--bd);border-radius:20px;padding:14px 16px;}
+  .card h2{font-size:20px;font-weight:900;margin-bottom:6px;}
+  svg.v{display:block;width:100%;height:auto;}
+  .sym{stroke:currentColor;stroke-width:3.5;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+  .wire{fill:none;stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round;}
+  .ctrl{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;margin-top:16px;}
+  .btn{border:none;border-radius:16px;padding:10px 20px;font-size:18px;font-weight:900;background:var(--elec);color:#fff;box-shadow:0 3px 0 #4a2a80;}
+  .btn.ghost{background:#fff;color:var(--ink);border:2px solid var(--bd);box-shadow:0 3px 0 #d8cbb0;}
+  .btn.sw{background:var(--ctl);box-shadow:0 3px 0 #173d73;min-width:170px;}
+  .btn.sw.off{background:#8a93a3;box-shadow:0 3px 0 #5d6574;}
+  .btn:active{transform:translateY(2px);box-shadow:none;}
+  label.rng{display:flex;align-items:center;gap:10px;font-size:18px;color:var(--ctl);}
+  input[type=range]{width:220px;accent-color:var(--ctl);}
+  .meter{display:flex;align-items:center;gap:10px;font-size:18px;}
+  .meter .track{width:200px;height:18px;background:#eee;border-radius:9px;overflow:hidden;}
+  .meter .fill{height:100%;background:var(--flow);width:0;transition:width .3s;}
+  .chk{display:flex;align-items:center;gap:6px;font-size:17px;color:var(--sub);}
+  .chk input{width:20px;height:20px;}
+  .info{margin-top:14px;min-height:56px;font-size:18px;line-height:1.6;padding:10px 16px;border-radius:14px;background:var(--elecLite);}
+  .role{display:inline-block;border-radius:10px;padding:0 10px;color:#fff;font-size:15px;margin-right:6px;}
+  .r-src{background:var(--src)} .r-wire{background:var(--wire)} .r-load{background:var(--load)} .r-ctl{background:var(--ctl)}
+  .part{cursor:pointer;}
+  .part .hl{fill:none;stroke:transparent;stroke-width:4;stroke-dasharray:6 5;}
+  .part.hot .hl{stroke:var(--flow);}
+  .dot{fill:var(--flow);}
+  /* 記号 */
+  .symlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:10px;}
+  .sc{background:#fff;border:2px solid var(--bd);border-radius:16px;padding:8px;text-align:center;font-size:16px;font-weight:900;}
+  .sc svg{width:120px;height:68px;color:var(--ink);}
+  .qbox{text-align:center;}
+  .qsym{width:260px;height:150px;color:var(--ink);}
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:640px;margin:14px auto 0;}
+  .choices button{border:3px solid var(--bd);background:#fff;border-radius:16px;padding:14px;font-size:20px;font-weight:900;color:var(--ink);}
+  .choices button.ok{background:var(--loadLite);border-color:var(--load);color:var(--load);}
+  .choices button.ng{background:var(--srcLite);border-color:var(--src);color:var(--src);}
+  .score{font-size:20px;margin:6px 0;color:var(--sub);}
+  /* パズル */
+  .tasks{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .tasks button{border:2px solid var(--bd);background:#fff;border-radius:14px;padding:8px 14px;font-size:16px;font-weight:900;}
+  .tasks button.on{border-color:var(--elec);background:var(--elecLite);color:var(--elec);}
+  .tasks button.done::after{content:" ✔";color:var(--load);}
+  .slot{cursor:pointer;}
+  .slot rect.box{fill:#fff8de;stroke:#d9a300;stroke-width:2.5;stroke-dasharray:7 6;}
+  .slot.sel rect.box{stroke:var(--elec);stroke-width:4;stroke-dasharray:none;fill:var(--elecLite);}
+  .slot.filled rect.box{fill:#fff;stroke:transparent;}
+  .slot.filled.sel rect.box{stroke:var(--elec);}
+  .palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .palette button{border:2px solid var(--bd);background:#fff;border-radius:14px;padding:4px 6px 6px;font-size:14px;font-weight:900;width:104px;color:var(--ink);}
+  .palette svg{width:88px;height:50px;display:block;margin:0 auto;}
+  .fb{margin-top:12px;font-size:18px;line-height:1.6;padding:10px 16px;border-radius:14px;min-height:50px;}
+  .fb.ok{background:var(--loadLite);color:var(--load);} .fb.ng{background:var(--srcLite);color:var(--src);} .fb.n{background:#f2efe7;color:var(--sub);}
+  /* 計算 */
+  .calc{display:grid;grid-template-columns:auto 1fr;gap:12px 18px;align-items:center;font-size:19px;max-width:640px;}
+  .calc select{font-size:18px;padding:6px 10px;border-radius:10px;border:2px solid var(--bd);font-weight:700;}
+  .result{margin-top:16px;font-size:20px;line-height:1.8;}
+  .big{font-size:34px;font-weight:900;color:var(--elec);}
+  footer{text-align:center;color:var(--sub);font-size:14px;padding:16px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="s-bat" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-7M7 0H50M-7 -24V24"/><path d="M7 -12V12" stroke-width="8"/></g></symbol>
+    <symbol id="s-lamp" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-17M17 0H50"/><circle r="17"/><path d="M-12 -12L12 12M-12 12L12 -12"/></g></symbol>
+    <symbol id="s-lampon" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-17M17 0H50"/><circle r="17" fill="#ffd96b"/><path d="M-12 -12L12 12M-12 12L12 -12"/></g><g class="sym" stroke="#e0a400" stroke-width="3"><path d="M0 -24V-30M17 -17L22 -22M-17 -17L-22 -22"/></g></symbol>
+    <symbol id="s-diode" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H50"/><path d="M-12 -14L12 0L-12 14Z" fill="#fff"/><path d="M12 -15V15"/></g></symbol>
+    <symbol id="s-led" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H50"/><path d="M-12 -14L12 0L-12 14Z" fill="#fff"/><path d="M12 -15V15"/><path d="M-1 -16L9 -26M8 -16L18 -26"/></g><g fill="currentColor"><path d="M11 -28L8.5 -20.5L3.5 -25.5Z"/><path d="M20 -28L17.5 -20.5L12.5 -25.5Z"/></g></symbol>
+    <symbol id="s-ledon" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H50"/><path d="M-12 -14L12 0L-12 14Z" fill="#fff"/><path d="M12 -15V15"/><path d="M-1 -16L9 -26M8 -16L18 -26" stroke="#e0a400"/></g><g fill="#e0a400"><path d="M11 -28L8.5 -20.5L3.5 -25.5Z"/><path d="M20 -28L17.5 -20.5L12.5 -25.5Z"/></g></symbol>
+    <symbol id="s-motor" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-19M19 0H50"/><circle r="19"/></g><text x="0" y="9" text-anchor="middle" font-size="26" font-weight="900" fill="currentColor" font-family="sans-serif">M</text></symbol>
+    <symbol id="s-motorv" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M0 -50V-19M0 19V50"/><circle r="19"/></g><text x="0" y="9" text-anchor="middle" font-size="26" font-weight="900" fill="currentColor" font-family="sans-serif">M</text></symbol>
+    <symbol id="s-buzzer" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-8V-10M50 0H8V-10"/><path d="M-18 -26H18A18 18 0 0 1 -18 -26Z"/></g></symbol>
+    <symbol id="s-sw" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-18M18 0H50M-18 0L16 -20"/></g></symbol>
+    <symbol id="s-swon" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-18M18 0H50M-18 0L18 -3"/></g></symbol>
+    <symbol id="s-cap" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-7M7 0H50M-7 -19V19M7 -19V19"/></g></symbol>
+    <symbol id="s-res" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-25M25 0H50"/><rect x="-25" y="-10" width="50" height="20"/></g></symbol>
+    <symbol id="s-vres" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-25M25 0H50"/><rect x="-25" y="-10" width="50" height="20"/><path d="M-22 19L16 -14"/></g><path d="M22 -19L18.5 -10L13 -16.5Z" fill="currentColor"/></symbol>
+    <symbol id="s-cds" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H-25M25 0H50"/><rect x="-25" y="-10" width="50" height="20"/><path d="M-24 -30L-15 -19M-11 -30L-2 -19"/></g><g fill="currentColor"><path d="M-11 -14L-18.5 -16.5L-12.5 -21.5Z"/><path d="M2 -14L-5.5 -16.5L0.5 -21.5Z"/></g></symbol>
+    <symbol id="s-join" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H50M0 0V30"/></g><circle r="5.5" fill="currentColor"/></symbol>
+    <symbol id="s-cross" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H50M0 -30V30"/></g></symbol>
+    <symbol id="s-none" viewBox="-50 -30 100 60" overflow="visible"><g class="sym"><path d="M-50 0H50"/></g></symbol>
+  </defs>
+</svg>
+
+<header>
+  <h1>⚡ <span>電気回路</span>ラボ</h1>
+  <nav>
+    <button data-tab="fan" class="on">① 扇風機のモデル</button>
+    <button data-tab="quiz">② 図記号クイズ</button>
+    <button data-tab="puzzle">③ 回路図パズル</button>
+    <button data-tab="led">④ LEDの抵抗</button>
+  </nav>
+</header>
+
+<main>
+<!-- ① 扇風機のモデル -->
+<section class="tab on" id="fan">
+  <p class="lead">スイッチと可変抵抗器を操作して、プロペラの変化を見よう。左の「実物」と右の「回路図」は同じ回路です。部品をクリックすると役割がわかります。<br><small>※変化のようすを見るための簡略モデルです。実際のモータの電流や回転の速さを正確に再現するものではありません。</small></p>
+  <div class="two">
+    <div class="card"><h2>実物のようす</h2><svg class="v" id="real" viewBox="0 0 640 400"></svg></div>
+    <div class="card"><h2>回路図</h2><svg class="v" id="diag" viewBox="0 0 640 400"></svg></div>
+  </div>
+  <div class="ctrl">
+    <button class="btn sw off" id="swBtn">スイッチ：切</button>
+    <label class="rng">可変抵抗器（つまみ）<input type="range" id="knob" min="0" max="100" value="20"></label>
+    <div class="meter">電流の大きさ <div class="track"><div class="fill" id="iFill"></div></div></div>
+    <label class="chk"><input type="checkbox" id="cut">導線を1本はずす</label>
+    <label class="chk"><input type="checkbox" id="rev">電池の向きを逆にする</label>
+  </div>
+  <div class="info" id="fanInfo">部品をクリックしてみよう。</div>
+</section>
+
+<!-- ② 図記号クイズ -->
+<section class="tab" id="quiz">
+  <p class="lead">電気用図記号（JIS C 0617）を覚えよう。10問チャレンジ！</p>
+  <div class="two">
+    <div class="card qbox">
+      <div class="score" id="qScore">第1問 / 10</div>
+      <svg class="qsym" id="qSym" viewBox="-60 -34 120 68"></svg>
+      <p style="font-size:20px;">この記号はなんの部品？</p>
+      <div class="choices" id="qCh"></div>
+      <div style="margin-top:14px;"><button class="btn ghost" id="qRestart">はじめから</button></div>
+    </div>
+    <div class="card"><h2>記号の一覧</h2><div class="symlist" id="symList"></div></div>
+  </div>
+</section>
+
+<!-- ③ 回路図パズル -->
+<section class="tab" id="puzzle">
+  <p class="lead">お題の回路図を完成させよう。電池（左）はセット済み。点線の枠をクリック → 記号を選ぶ。できたら「スイッチを入れて確かめる」。</p>
+  <div class="tasks" id="tasks"></div>
+  <div class="two">
+    <div class="card">
+      <h2 id="pzTitle"></h2>
+      <p style="font-size:16px;color:var(--sub);line-height:1.6;" id="pzDesc"></p>
+      <svg class="v" id="pz" viewBox="0 0 640 400"></svg>
+    </div>
+    <div class="card">
+      <h2>記号をえらぶ</h2>
+      <div class="palette" id="pal"></div>
+      <div class="ctrl"><button class="btn" id="pzCheck">スイッチを入れて確かめる</button><button class="btn ghost" id="pzClear">やり直す</button></div>
+      <div class="fb n" id="pzFb">枠をクリックしてから記号を選ぼう。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ④ LEDの抵抗 -->
+<section class="tab" id="led">
+  <p class="lead">LEDは、流れる電流が大きすぎると壊れてしまいます。そこで「電流制限抵抗」をつないで電流をおさえます。必要な抵抗の大きさを、オームの法則（電圧V＝抵抗R×電流I）で求めよう。</p>
+  <div class="two">
+    <div class="card">
+      <div class="calc">
+        <span>電源の電圧</span>
+        <select id="cV"><option value="3">3.0V（電池2本）</option><option value="4.5" selected>4.5V（電池3本）</option><option value="5">5.0V（USB）</option><option value="6">6.0V（電池4本）</option></select>
+        <span>LEDの種類</span>
+        <select id="cLed"><option value="3.5,20" selected>白色 3.5V・20mA（教科書の例）</option><option value="2.0,20">赤色 2.0V・20mA（例）</option></select>
+      </div>
+      <div class="result" id="cOut"></div>
+      <p style="font-size:15px;color:var(--sub);margin-top:10px;line-height:1.6;">※LEDの電圧・電流は製品ごとに異なります。実際はデータシートの値で計算します。抵抗器は決まった値（E24系列など）から選びます。</p>
+    </div>
+    <div class="card"><h2>回路図</h2><svg class="v" id="ledDiag" viewBox="0 0 640 400"></svg></div>
+  </div>
+</section>
+</main>
+<footer>技術・家庭科〔技術分野〕エネルギー変換の技術「電気回路の仕組み」用の教材です。</footer>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const X0 = 150, X1 = 490, Y0 = 70, Y1 = 330;   // 回路の輪（共通）
+
+/* ---------- タブ ---------- */
+function openTab(id){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.id===id));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab===id));
+  history.replaceState(null,'','#'+id);
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => openTab(b.dataset.tab));
+if(['fan','quiz','puzzle','led'].includes(location.hash.slice(1))) openTab(location.hash.slice(1));
+
+/* ---------- 共通：記号を置く ---------- */
+const use = (id, cx, cy, rot=0) => { if(id==='motor' && rot%180){ id='motorv'; rot=0; } return `<use href="#s-${id}" x="-50" y="-30" width="100" height="60" transform="translate(${cx} ${cy}) rotate(${rot})"/>`; };
+
+/* =========================================================
+   ① 扇風機のモデル
+   ========================================================= */
+const ROLE = {
+  bat:  ['src','電源','電池ボックス（単3×2本）','電流を送る役割を果たす部分。長い線の側が＋極。'],
+  wire: ['wire','導線','導線','電流の通り道。どこか1か所でも切れると、輪がとぎれて電流は流れない。'],
+  sw:   ['ctl','電流を制御する部分','スイッチ','輪をつないだり切ったりして、電流を流す・止める。'],
+  vres: ['ctl','電流を制御する部分','可変抵抗器','つまみで電流の流れにくさ（抵抗）を変え、流れる電流の大きさを調節する。'],
+  motor:['load','負荷','モータ（プロペラ付き）','電流の働きで仕事をする部分。電気エネルギーを回転の運動に変換する。'],
+};
+const P = { bat:[X0,200,90], sw:[263,Y0,0], vres:[377,Y0,0], motor:[X1,200,90] };
+const st = { on:false, knob:20, cut:false, rev:false, ang:0, off:0 };
+
+function buildFan(){
+  // 回路図
+  let d = `<path class="wire" d="M${X0} ${Y0}H${X1}V${Y1}H${X0}Z" id="dWire"/>`;
+  d += `<g class="part" data-p="wire"><path d="M${X0} ${Y1}H${X1}" stroke="transparent" stroke-width="24"/><path class="hl" d="M${X0+10} ${Y1+14}H${X1-10}"/></g>`;
+  for(const [k,[x,y,r]] of Object.entries(P)){
+    const id = k==='sw' ? 'sw' : k;
+    d += `<g class="part" data-p="${k}"><rect x="${x-44}" y="${y-44}" width="88" height="88" fill="#fff" transform="rotate(${r} ${x} ${y})"/><rect class="hl" x="${x-48}" y="${y-48}" width="96" height="96" rx="12"/><g class="dsym" data-k="${k}">${use(id,x,y,r)}</g></g>`;
+  }
+  d += `<text id="dPlus" x="${X0-26}" y="${200-12}" font-size="24" fill="#c23b22" text-anchor="end" font-weight="900">＋</text>`;
+  d += `<g id="dCut"></g><g id="dDots"></g>`;
+  ['電池',['スイッチ',263,Y0-42],['可変抵抗器',377,Y0-42],'モータ'].forEach((t,i) => {
+    if(i===0) d += `<text x="${X0-50}" y="210" font-size="22" text-anchor="end" font-weight="900">電池</text>`;
+    else if(i===3) d += `<text x="${X1+50}" y="210" font-size="22" font-weight="900">モータ</text>`;
+    else d += `<text x="${t[1]}" y="${t[2]}" font-size="22" text-anchor="middle" font-weight="900">${t[0]}</text>`;
+  });
+  $('#diag').innerHTML = d;
+
+  // 実物のようす（同じ輪の位置に、実物に近い絵で）
+  let r = `<rect x="20" y="20" width="600" height="360" rx="20" fill="#f3ead6"/>`;
+  r += `<path d="M${X0} ${Y0+40}V${Y0}H${X1}V170" fill="none" stroke="#d0342c" stroke-width="7" stroke-linecap="round"/>`;
+  r += `<path d="M${X1} 230V${Y1}H${X0}V${Y1-40}" fill="none" stroke="#2b2b2b" stroke-width="7" stroke-linecap="round" id="rBlack"/>`;
+  r += `<g id="rCut"></g>`;
+  // 電池ボックス
+  r += `<g class="part" data-p="bat" id="rBat"><rect class="hl" x="${X0-48}" y="100" width="96" height="190" rx="12"/>
+    <rect x="${X0-34}" y="110" width="68" height="170" rx="10" fill="#333"/>
+    <rect x="${X0-26}" y="118" width="22" height="154" rx="8" fill="#c9a227"/><rect x="${X0+4}" y="118" width="22" height="154" rx="8" fill="#c9a227"/>
+    <rect x="${X0-26}" y="118" width="22" height="40" rx="8" fill="#555"/><rect x="${X0+4}" y="232" width="22" height="40" rx="8" fill="#555"/>
+    <text id="rPol" x="${X0+24}" y="100" font-size="22" text-anchor="middle" fill="#d0342c" font-weight="900">＋</text></g>`;
+  // スイッチ
+  r += `<g class="part" data-p="sw"><rect class="hl" x="215" y="30" width="96" height="80" rx="12"/>
+    <rect x="228" y="52" width="70" height="38" rx="8" fill="#555"/><g id="rLever"><rect x="257" y="30" width="12" height="34" rx="6" fill="#bbb" stroke="#888"/></g></g>`;
+  // 可変抵抗器
+  r += `<g class="part" data-p="vres"><rect class="hl" x="329" y="22" width="96" height="96" rx="12"/>
+    <circle cx="377" cy="70" r="30" fill="#2f5d9a"/><g id="rKnob"><circle cx="377" cy="70" r="20" fill="#e8e8e8" stroke="#999" stroke-width="2"/><rect x="374" y="50" width="6" height="18" rx="3" fill="#2f5d9a"/></g></g>`;
+  // モータとプロペラ（正面から見た絵）
+  r += `<g class="part" data-p="motor"><rect class="hl" x="${X1-62}" y="138" width="124" height="124" rx="12"/>
+    <circle cx="${X1}" cy="200" r="30" fill="#b9bec7" stroke="#7d838e" stroke-width="3"/>
+    <g id="rProp" style="transform-origin:${X1}px 200px;"><ellipse cx="${X1-30}" cy="200" rx="30" ry="10" fill="#e56b2a" opacity=".92"/><ellipse cx="${X1+30}" cy="200" rx="30" ry="10" fill="#e56b2a" opacity=".92"/><circle cx="${X1}" cy="200" r="8" fill="#333"/></g></g>`;
+  r += `<g class="part" data-p="wire"><path d="M${X0} ${Y1}H${X1}" stroke="transparent" stroke-width="26"/><path class="hl" d="M${X0+10} ${Y1+16}H${X1-10}"/></g>`;
+  r += `<g id="rDots"></g>`;
+  $('#real').innerHTML = r;
+
+  document.querySelectorAll('#fan .part').forEach(g => {
+    g.onclick = () => { selectPart(g.dataset.p); };
+  });
+}
+function selectPart(p){
+  document.querySelectorAll('#fan .part').forEach(x => x.classList.toggle('hot', x.dataset.p===p));
+  const [c, role, name, desc] = ROLE[p];
+  $('#fanInfo').innerHTML = `<span class="role r-${c}">${role}</span><b>${name}</b>：${desc}`;
+}
+
+// 電流の通り道（＋極から外回り）。左辺の電池の上が＋。
+const loopPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+loopPath.setAttribute('d', `M${X0} 200V${Y0}H${X1}V${Y1}H${X0}Z`);
+const LEN = 2*(X1-X0) + 2*(Y1-Y0);
+function current(){
+  if(!st.on || st.cut) return 0;
+  const R = 10 + st.knob*0.4;     // モータ10Ω＋可変抵抗0〜40Ω（めやす）
+  return 3/R;                      // 3V
+}
+function updateFan(){
+  const I = current();
+  $('#iFill').style.width = (I/0.3*100)+'%';
+  $('#swBtn').textContent = 'スイッチ：' + (st.on ? '入' : '切');
+  $('#swBtn').classList.toggle('off', !st.on);
+  // 回路図のスイッチ
+  const ds = document.querySelector('.dsym[data-k=sw]');
+  ds.innerHTML = use(st.on ? 'swon' : 'sw', P.sw[0], P.sw[1], 0);
+  // 電池の向き
+  const db = document.querySelector('.dsym[data-k=bat]');
+  db.innerHTML = use('bat', P.bat[0], P.bat[1], st.rev ? -90 : 90);
+  $('#dPlus').setAttribute('y', st.rev ? 236 : 188);
+  $('#rPol').setAttribute('y', st.rev ? 300 : 104);
+  // 実物のレバーとつまみ
+  $('#rLever').setAttribute('transform', st.on ? 'rotate(30 263 64)' : 'rotate(-30 263 64)');
+  $('#rKnob').setAttribute('transform', `rotate(${-120 + st.knob*2.4} 377 70)`);
+  // 導線をはずす
+  const cutMark = `<g><rect x="300" y="${Y1-12}" width="40" height="24" fill="#f3ead6"/><path d="M296 ${Y1}h6M338 ${Y1}h6" stroke="#2b2b2b" stroke-width="7"/><text x="320" y="${Y1+40}" font-size="20" text-anchor="middle" fill="#c23b22" font-weight="900">はずれている！</text></g>`;
+  $('#rCut').innerHTML = st.cut ? cutMark : '';
+  $('#dCut').innerHTML = st.cut ? `<rect x="300" y="${Y1-10}" width="40" height="20" fill="#fff"/><text x="320" y="${Y1+36}" font-size="20" text-anchor="middle" fill="#c23b22" font-weight="900">輪がとぎれた</text>` : '';
+  let msg;
+  if(!st.on) msg = 'スイッチが「切」：輪がとぎれているので電流は流れない。';
+  else if(st.cut) msg = 'スイッチは「入」でも、導線が1本はずれると輪がとぎれて電流は流れない。';
+  else if(I < 0.09) msg = '抵抗が大きすぎて電流が小さく、モータが回り出せない。つまみをもどしてみよう。';
+  else msg = `電流が流れてプロペラが回る。つまみを回して抵抗を${st.knob<50?'大きくすると電流が小さくなり、ゆっくり':'小さくすると電流が大きくなり、速く'}回る。` + (st.rev ? '<br>電池の向きを逆にすると、電流の向きが逆になり、<b>回る向きも逆</b>になる。' : '');
+  if(!document.querySelector('#fan .part.hot')) $('#fanInfo').innerHTML = msg;
+  else $('#fanInfo').dataset.msg = msg;
+  $('#fanMsg') && ($('#fanMsg').innerHTML = msg);
+}
+let last = performance.now();
+function tick(t){
+  const dt = Math.min(.05, (t-last)/1000); last = t;
+  const I = current();
+  const run = I >= 0.09;
+  // プロペラ
+  if(run){ st.ang += (st.rev?-1:1) * I * 5000 * dt; $('#rProp').style.transform = `rotate(${st.ang}deg)`; }
+  // 電流の粒（＋極から出る向き）
+  st.off = (st.off + (st.rev?-1:1) * I * 900 * dt + LEN) % LEN;
+  const N = 14; let dots = '';
+  if(I > 0){
+    for(let i=0;i<N;i++){
+      const pt = loopPath.getPointAtLength((st.off + i*LEN/N) % LEN);
+      dots += `<circle class="dot" cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="6"/>`;
+    }
+  }
+  $('#dDots').innerHTML = dots; $('#rDots').innerHTML = dots;
+  requestAnimationFrame(tick);
+}
+buildFan();
+$('#fan').insertAdjacentHTML('beforeend', '');
+$('#swBtn').onclick = () => { st.on = !st.on; clearSel(); updateFan(); };
+$('#knob').oninput = e => { st.knob = +e.target.value; clearSel(); updateFan(); };
+$('#cut').onchange = e => { st.cut = e.target.checked; clearSel(); updateFan(); };
+$('#rev').onchange = e => { st.rev = e.target.checked; clearSel(); updateFan(); };
+function clearSel(){ document.querySelectorAll('#fan .part').forEach(x => x.classList.remove('hot')); }
+updateFan(); requestAnimationFrame(tick);
+
+/* =========================================================
+   ② 図記号クイズ
+   ========================================================= */
+const SYMS = [
+  ['bat','電池・直流電源'],['sw','スイッチ'],['res','抵抗器'],['vres','可変抵抗器'],['cds','光導電セル（CdS）'],
+  ['lamp','ランプ（電球）'],['led','発光ダイオード（LED）'],['motor','モータ'],['buzzer','ブザー'],
+  ['diode','ダイオード'],['cap','コンデンサ'],['join','導線の接続'],['cross','導線の交差（接続しない）'],
+];
+$('#symList').innerHTML = SYMS.map(([id,n]) => `<div class="sc"><svg viewBox="-60 -34 120 68">${use(id,0,0)}</svg><div>${n}</div></div>`).join('');
+const shuffle = a => { a = a.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } return a; };
+let qs = [], qi = 0, qok = 0, qlock = false, qTimer = 0;
+function qStart(){ clearTimeout(qTimer); qs = shuffle(SYMS).slice(0,10); qi = 0; qok = 0; qShow(); }
+function qShow(){
+  if(qi >= qs.length){
+    $('#qScore').textContent = `結果：10問中 ${qok}問 正解！` + (qok===10 ? ' 🎉 パーフェクト！' : qok>=7 ? ' 👍' : ' もう一度やってみよう');
+    $('#qSym').innerHTML = ''; $('#qCh').innerHTML = ''; return;
+  }
+  qlock = false;
+  const [id, name] = qs[qi];
+  $('#qScore').textContent = `第${qi+1}問 / 10　　正解 ${qok}`;
+  $('#qSym').innerHTML = use(id,0,0);
+  const opts = shuffle([name, ...shuffle(SYMS.filter(s => s[1]!==name)).slice(0,3).map(s => s[1])]);
+  $('#qCh').innerHTML = opts.map(o => `<button>${o}</button>`).join('');
+  $('#qCh').querySelectorAll('button').forEach(b => b.onclick = () => {
+    if(qlock) return; qlock = true;
+    if(b.textContent===name){ b.classList.add('ok'); qok++; }
+    else { b.classList.add('ng'); [...$('#qCh').children].find(x => x.textContent===name).classList.add('ok'); }
+    qTimer = setTimeout(() => { qi++; qShow(); }, 1100);
+  });
+}
+$('#qRestart').onclick = qStart; qStart();
+
+/* =========================================================
+   ③ 回路図パズル
+   ========================================================= */
+const PNAME = {bat:'電池',sw:'スイッチ',res:'抵抗器',vres:'可変抵抗器',lamp:'ランプ',led:'LED',motor:'モータ',buzzer:'ブザー',cap:'コンデンサ',none:'線だけ'};
+const TASKS = [
+  {t:'豆電球の懐中電灯', d:'スイッチで豆電球を点けたり消したりする。', need:['bat','sw','lamp'], slots:3},
+  {t:'呼び鈴', d:'ボタン（スイッチ）を押すとブザーが鳴る。', need:['bat','sw','buzzer'], slots:3},
+  {t:'扇風機のモデル', d:'スイッチで入／切、つまみでプロペラの速さを変える。', need:['bat','sw','vres','motor'], slots:4},
+  {t:'明るさを変えられるライト', d:'スイッチで入／切、つまみでランプの明るさを変える。', need:['bat','sw','vres','lamp'], slots:4},
+  {t:'LEDライト', d:'スイッチでLEDを点ける。LEDを壊さない工夫も入れよう。', need:['bat','sw','res','led'], slots:4},
+];
+const SLOTPOS = { 3: [[X0,200,90],[320,Y0,0],[X1,200,90]], 4: [[X0,200,90],[263,Y0,0],[377,Y0,0],[X1,200,90]] };
+const PAL = ['sw','res','vres','lamp','led','motor','buzzer','cap','none'];
+let tk = 0, fill = [], sel = 0, lit = false;
+const done = new Set();
+$('#pal').innerHTML = PAL.map(id => `<button data-id="${id}"><svg viewBox="-60 -34 120 68">${use(id,0,0)}</svg>${PNAME[id]}</button>`).join('');
+$('#pal').querySelectorAll('button').forEach(b => b.onclick = () => {
+  if(sel < 1) return;
+  fill[sel] = b.dataset.id; lit = false;
+  const nx = fill.findIndex((v,i) => i>sel && !v); sel = nx >= 0 ? nx : Math.max(1, fill.findIndex(v => !v));
+  drawPz(); fb('n', '記号を置いたよ。全部置いたら「スイッチを入れて確かめる」。');
+});
+function setTask(i){ tk = i; fill = Array(TASKS[i].slots).fill(null); fill[0] = 'bat'; sel = 1; lit = false; drawTasks(); drawPz(); fb('n','枠をクリックしてから記号を選ぼう。'); }
+function drawTasks(){
+  $('#tasks').innerHTML = TASKS.map((t,i) => `<button class="${i===tk?'on':''} ${done.has(i)?'done':''}" data-i="${i}">${i+1}. ${t.t}</button>`).join('');
+  $('#tasks').querySelectorAll('button').forEach(b => b.onclick = () => setTask(+b.dataset.i));
+  $('#pzTitle').textContent = `お題 ${tk+1}：${TASKS[tk].t}`;
+  $('#pzDesc').textContent = TASKS[tk].d;
+}
+function drawPz(){
+  const pos = SLOTPOS[TASKS[tk].slots];
+  let s = `<path class="wire" d="M${X0} ${Y0}H${X1}V${Y1}H${X0}Z"/>`;
+  pos.forEach(([x,y,r],i) => {
+    let id = fill[i];
+    if(lit && id==='sw') id = 'swon';
+    if(lit && id==='lamp') id = 'lampon';
+    if(lit && id==='led') id = 'ledon';
+    s += `<g class="slot ${fill[i]?'filled':''} ${i===sel?'sel':''}" data-i="${i}"><rect class="box" x="${x-44}" y="${y-40}" width="88" height="80" rx="10" transform="rotate(${r} ${x} ${y})"/>`;
+    s += id ? use(id,x,y,r) + (id==='motor' && lit ? `<text x="${x+30}" y="${y-28}" font-size="30" fill="#e07b00" style="transform-origin:center;transform-box:fill-box;animation:spin 1s linear infinite">↻</text>` : '') : `<text x="${x}" y="${y+8}" font-size="26" text-anchor="middle" fill="#b58a00" font-weight="900">？</text>`;
+    if(lit && id==='buzzer') s += `<text x="${x+48}" y="${y-30}" font-size="30" fill="#e07b00">♪</text>`;
+    s += `</g>`;
+  });
+  if(lit) s += `<path d="M${X0+46} ${Y1-46}V${Y0+46}H${X1-46}V${Y1-46}Z" fill="none" stroke="#e07b00" stroke-width="4" stroke-dasharray="14 10"><animate attributeName="stroke-dashoffset" from="48" to="0" dur=".8s" repeatCount="indefinite"/></path>`;
+  $('#pz').innerHTML = s;
+  $('#pz').querySelectorAll('.slot').forEach(g => g.onclick = () => { if(+g.dataset.i===0) return fb('n','電池は左に固定（長い線＝＋極が上）。ほかの枠に記号を置こう。'); sel = +g.dataset.i; lit = false; drawPz(); });
+}
+function fb(c, m){ const e = $('#pzFb'); e.className = 'fb ' + c; e.innerHTML = m; }
+$('#pzClear').onclick = () => setTask(tk);
+$('#pzCheck').onclick = () => {
+  const need = TASKS[tk].need, have = fill.filter(v => v && v!=='none');
+  const cnt = a => a.reduce((m,x) => (m[x]=(m[x]||0)+1, m), {});
+  const H = cnt(have);
+  if(fill.some(v => !v)) return drawPz(), fb('ng','まだ空いている枠（？）があるよ。部品がいらない所は「線だけ」を選ぼう。');
+  lit = false;
+  if(!H.bat) return drawPz(), fb('ng','⚡ <b>電源</b>がないよ。電源がないと電流は流れない。');
+  if(H.bat > 1) return drawPz(), fb('ng','この回路では電池の記号は1つでOK（電池が何本でも、まとめて1つの電源として表してよい）。');
+  if(!H.sw) return drawPz(), fb('ng','🔘 <b>スイッチ</b>がないと、入／切ができないよ。');
+  if(H.led && !H.res && !H.vres) return drawPz(), fb('ng','💥 このままだとLEDに流れる電流が大きすぎて、<b>LEDが壊れる</b>かも！ 電流をおさえる部品は？（④LEDの抵抗 も見てみよう）');
+  const loads = ['lamp','led','motor','buzzer'].filter(x => need.includes(x));
+  for(const l of loads) if(!H[l]) return drawPz(), fb('ng', `お題の「${TASKS[tk].t}」で、電気エネルギーを変換する<b>負荷</b>は何かな？`);
+  if(need.includes('vres') && !H.vres) return drawPz(), fb('ng','速さや明るさを「つまみ」で変えるには、どの部品が必要かな？');
+  const extra = have.filter(x => !need.includes(x));
+  if(extra.length) return drawPz(), fb('ng', `お題に必要ない部品（${[...new Set(extra)].map(x=>PNAME[x]).join('・')}）が入っているよ。`);
+  lit = true; done.add(tk); drawTasks(); drawPz();
+  fb('ok', '⭕ 正解！ 輪がつながって電流が流れた。' + (need.includes('res') ? '抵抗器（電流制限抵抗）でLEDを守っているね。' : '') + (tk < TASKS.length-1 ? ' 次のお題にも挑戦しよう。' : ' 全部できたかな？'));
+};
+setTask(0);
+
+/* =========================================================
+   ④ LEDの抵抗
+   ========================================================= */
+const E24 = [10,11,12,13,15,16,18,20,22,24,27,30,33,36,39,43,47,51,56,62,68,75,82,91];
+function e24up(r){ for(let k=1;k<=1e4;k*=10) for(const v of E24){ const x = v*k/10; if(x >= r - 1e-9) return x; } return r; }
+function calc(){
+  const V = +$('#cV').value, [vf, ma] = $('#cLed').value.split(',').map(Number), I = ma/1000;
+  const vr = +(V - vf).toFixed(2);
+  if(vr <= 0){
+    $('#cOut').innerHTML = `電源 ${V}V では、LED（${vf}V）を光らせるには電圧が足りない。<br>電池の本数を増やそう。`;
+  } else {
+    const R = vr / I, pick = e24up(R);
+    $('#cOut').innerHTML = `① 抵抗器にかかる電圧　${V} − ${vf} ＝ <b>${vr}V</b><br>② R ＝ V ÷ I ＝ ${vr} ÷ ${I} ＝ <span class="big">${+R.toFixed(1)}Ω</span><br>③ 選ぶ抵抗器の例　<b>${pick}Ω</b><span style="font-size:16px;color:var(--sub);">（計算値に近く、少し大きめの値を選ぶと電流が流れすぎない）</span>`;
+  }
+  $('#ledDiag').innerHTML = `<path class="wire" d="M${X0} ${Y0}H${X1}V${Y1}H${X0}Z"/>` +
+    [[ 'bat',X0,200,90],['swon',263,Y0,0],['res',377,Y0,0],[vr>0?'ledon':'led',X1,200,90]].map(([id,x,y,r]) => `<rect x="${x-44}" y="${y-40}" width="88" height="80" fill="#fff" transform="rotate(${r} ${x} ${y})"/>${use(id,x,y,r)}`).join('') +
+    `<text x="${X0-50}" y="210" font-size="22" text-anchor="end" font-weight="900">電源 ${V}V</text><text x="263" y="${Y0-42}" font-size="22" text-anchor="middle" font-weight="900">スイッチ</text><text x="377" y="${Y0-42}" font-size="22" text-anchor="middle" font-weight="900" fill="#2459a6">抵抗器</text><text x="${X1+50}" y="210" font-size="22" font-weight="900">LED</text>`;
+}
+$('#cV').onchange = calc; $('#cLed').onchange = calc; calc();
+})();
+</script>
+</body>
+</html>
